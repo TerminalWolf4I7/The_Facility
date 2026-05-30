@@ -128,7 +128,7 @@
                     Text Analysis Tools
                 </h1>
 
-                <div class="grid md:grid-cols-2 gap-6 sm:gap-8 mb-16 sm:mb-20">
+                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-16 sm:mb-20">
                     <a href="view/wordcount.html"
                         class="tool-card glass-card group relative rounded-xl p-6 transition-transform font-bold overflow-hidden">
                         <div class="relative z-10"> <div class="text-4xl mb-4 emoji-float">📝</div>
@@ -151,6 +151,16 @@
                                 your reading speed</p>
                         </div>
                         <div class="absolute inset-0 bg-gradient-to-r from-[#00d2ff]/30 to-[#3a7bd5]/90 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500 ease-out">
+                        </div>
+                    </a>
+
+                    <a href="view/markdown.html"
+                        class="tool-card glass-card group relative rounded-xl p-6 transition-transform font-bold overflow-hidden">
+                         <div class="relative z-10"> <div class="text-4xl mb-4 emoji-float">📊</div>
+                            <h3 class="text-xl sm:text-2xl font-bold mb-2">Markdown Converter</h3>
+                            <p class="text-gray-200 text-sm sm:text-base">Convert Markdown to Rich Text & Table for Google Docs</p>
+                        </div>
+                        <div class="absolute inset-0 bg-gradient-to-r from-[#8b5cf6]/30 to-[#ec4899]/90 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500 ease-out">
                         </div>
                     </a>
                 </div>
@@ -190,36 +200,34 @@
             });
 
             // Animation Navbar: เลื่อนลงจากด้านบน
-            tl.from("nav", {
-                y: -100, // เริ่มจากนอกจอด้านบน
-                opacity: 0, // เริ่มจากโปร่งใส
-                duration: 1 // ใช้เวลา 1 วินาที
-            });
+            tl.fromTo("nav", 
+                { y: -100, opacity: 0 },
+                { y: 0, opacity: 1, duration: 1 }
+            );
 
             // Animation หัวข้อ: ขยายและค่อยๆ ปรากฏ
-            tl.from("main h1", {
-                scale: 0.5, // เริ่มจากขนาดครึ่งนึง
-                opacity: 0, // เริ่มจากโปร่งใส
-                duration: 0.8 // ใช้เวลา 0.8 วินาที
-            }, "-=0.5"); // เริ่มก่อน animation ก่อนหน้าเสร็จ 0.5 วินาที
+            tl.fromTo("main h1", 
+                { scale: 0.5, opacity: 0 },
+                { scale: 1, opacity: 1, duration: 0.8 },
+                "-=0.5"
+            );
             
             // Animation การ์ดหลักที่ครอบเนื้อหา: เลื่อนขึ้นและปรากฏ
-            tl.from("main > .glass-card", { // Target the main container glass-card
-                y: 50,
-                opacity: 0,
-                duration: 0.7
-            }, "-=0.6"); // Adjust timing as needed
+            tl.fromTo("main > .glass-card", 
+                { y: 50, opacity: 0 },
+                { y: 0, opacity: 1, duration: 0.7 },
+                "-=0.6"
+            );
 
             // Animation การ์ดเครื่องมือ (Word Counter, Speed Reader): เลื่อนขึ้นและปรากฏแบบต่อเนื่อง
-            tl.from("main .tool-card.glass-card", { // Target only the tool cards specifically
-                y: 50, // เริ่มจากด้านล่าง 50px
-                opacity: 0, // เริ่มจากโปร่งใส
-                stagger: {
+            tl.fromTo("main .tool-card.glass-card", 
+                { y: 50, opacity: 0 },
+                { y: 0, opacity: 1, stagger: {
                     each: 0.15, // การ์ดแต่ละใบหน่วงเวลา 0.15 วินาที
                     from: "start" // เริ่มจากการ์ดแรก
-                },
-                duration: 0.6 // ใช้เวลา 0.6 วินาที
-            }, "-=0.4"); // เริ่มก่อน animation ก่อนหน้าเสร็จ 0.4 วินาที
+                }, duration: 0.6 },
+                "-=0.4"
+            );
 
             // Animation ลอยตัวสำหรับอิโมจิ
             gsap.to(".emoji-float", {

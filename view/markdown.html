@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown to Rich Text Converter | THE Facility</title>
+    <meta name="description" content="แปลงไฟล์ Markdown ของคุณเป็นข้อความ Rich Text (HTML) แบบเรียลไทม์ พร้อมความสามารถในการคัดลอกตารางไปวางใน Google Docs ได้โดยตรงอย่างสวยงาม">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS & GSAP -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+    <!-- Libraries สำหรับ Markdown และ Highlight โค้ด -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'Sarabun', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: { DEFAULT: '#8b5cf6', dark: '#7c3aed' }, // สีม่วง
+                        secondary: { DEFAULT: '#ec4899', dark: '#db2777' }, // สีชมพู
+                        dark: { 100: '#0f0f13', 200: '#181820', 300: '#252530', 400: '#323244' }
+                    },
+                    animation: {
+                        'float-slow': 'float 6s ease-in-out infinite',
+                        'gradient-slow': 'gradientShift 10s ease infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+                            '50%': { transform: 'translateY(-15px) rotate(3deg)' },
+                        },
+                        gradientShift: {
+                            '0%, 100%': { 'background-position': '0% 50%' },
+                            '50%': { 'background-position': '100% 50%' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* สไตล์กระจกพรีเมียม (Glassmorphism) */
+        .glass-card {
+            backdrop-filter: blur(20px);
+            background-color: rgba(255, 255, 255, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+        }
+
+        .dark .glass-card {
+            background-color: rgba(24, 24, 32, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* เอฟเฟกต์สีฟุ้งด้านหลัง (Glow effect) */
+        .bg-glow-purple {
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0,0,0,0) 70%);
+        }
+        .bg-glow-pink {
+            background: radial-gradient(circle, rgba(236, 72, 153, 0.15) 0%, rgba(0,0,0,0) 70%);
+        }
+
+        /* การแต่งตาราง Markdown ในส่วน Preview ให้ดูสวยหรู */
+        .markdown-preview table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+            text-align: left;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+        .markdown-preview th {
+            background-color: rgba(139, 92, 246, 0.1);
+            color: #7c3aed;
+            font-weight: 700;
+            border-bottom: 2px solid rgba(139, 92, 246, 0.2);
+            padding: 12px 16px;
+        }
+
+        .dark .markdown-preview th {
+            background-color: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+            border-bottom: 2px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .markdown-preview td {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+            color: #4b5563;
+        }
+
+        .dark .markdown-preview td {
+            border-bottom: 1px solid rgba(75, 85, 99, 0.3);
+            color: #d1d5db;
+        }
+
+        .markdown-preview tr:last-child td {
+            border-bottom: none;
+        }
+
+        .markdown-preview tr:hover {
+            background-color: rgba(139, 92, 246, 0.03);
+        }
+
+        .dark .markdown-preview tr:hover {
+            background-color: rgba(139, 92, 246, 0.05);
+        }
+
+        /* Typography ทั่วไปของ Markdown Preview */
+        .markdown-preview h1 { font-size: 1.8rem; font-weight: 800; margin: 1.5rem 0 0.8rem; color: #1e1b4b; line-height: 1.3; }
+        .markdown-preview h2 { font-size: 1.45rem; font-weight: 700; margin: 1.3rem 0 0.7rem; color: #311042; }
+        .markdown-preview h3 { font-size: 1.2rem; font-weight: 600; margin: 1.1rem 0 0.6rem; color: #4c1d95; }
+        
+        .dark .markdown-preview h1 { color: #f3e8ff; }
+        .dark .markdown-preview h2 { color: #fdf2f8; }
+        .dark .markdown-preview h3 { color: #fae8ff; }
+
+        .markdown-preview p { margin-bottom: 1rem; line-height: 1.7; color: #374151; }
+        .dark .markdown-preview p { color: #cbd5e1; }
+
+        .markdown-preview strong { font-weight: 700; color: #111827; }
+        .dark .markdown-preview strong { color: #f9fafb; }
+
+        .markdown-preview blockquote {
+            border-left: 4px solid #8b5cf6;
+            padding-left: 1rem;
+            margin: 1.2rem 0;
+            font-style: italic;
+            color: #4b5563;
+            background-color: rgba(139, 92, 246, 0.05);
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+        .dark .markdown-preview blockquote {
+            color: #9ca3af;
+            background-color: rgba(139, 92, 246, 0.08);
+        }
+
+        .markdown-preview ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .markdown-preview ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .markdown-preview li { margin-bottom: 0.4rem; }
+
+        .markdown-preview code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            background-color: rgba(139, 92, 246, 0.08);
+            color: #db2777;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .dark .markdown-preview code {
+            background-color: rgba(236, 72, 153, 0.12);
+            color: #f472b6;
+        }
+
+        .markdown-preview pre {
+            background-color: #0f0f13 !important;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.2rem 0;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .markdown-preview pre code {
+            background-color: transparent !important;
+            color: inherit !important;
+            padding: 0;
+            font-size: 0.88rem;
+        }
+
+        /* Custom Scrollbar ให้ดูโมเดิร์น */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 8px;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.01);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.2);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 92, 246, 0.4);
+        }
+
+        /* ซ่อน Scrollbar ของ textarea เมื่อไม่ได้เลื่อน */
+        textarea {
+            scrollbar-width: thin;
+        }
+
+        /* แถบสีพรีเมียมขยับได้ (Animated Gradient Border) */
+        .gradient-top-border {
+            background: linear-gradient(90deg, #8b5cf6, #ec4899, #f43f5e, #8b5cf6);
+            background-size: 300% 100%;
+            animation: gradientShift 8s linear infinite;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-slate-50 dark:bg-[#0c0c10] text-slate-900 dark:text-slate-100 transition-colors duration-500 relative overflow-x-hidden font-sans">
+    
+    <!-- Background Glow Elements -->
+    <div class="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-glow-purple -z-10 pointer-events-none rounded-full"></div>
+    <div class="absolute bottom-[-10%] right-[-15%] w-[60%] h-[60%] bg-glow-pink -z-10 pointer-events-none rounded-full"></div>
+
+    <!-- Theme Toggle Fixed Button -->
+    <button id="themeToggleBtn"
+        class="fixed top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center
+               bg-gradient-to-r from-purple-500 to-pink-500
+               dark:from-purple-600 dark:to-pink-700
+               text-white shadow-lg hover:scale-110 active:scale-95 transition-all duration-300 z-50">
+        <span id="themeIconContainer" class="text-xl">
+            <!-- Sun Icon -->
+            <svg id="sunIcon" class="w-5 h-5 block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <!-- Moon Icon -->
+            <svg id="moonIcon" class="w-5 h-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+        </span>
+    </button>
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto p-4 pt-10 sm:pt-14 pb-12 relative z-10">
+        
+        <!-- Header -->
+        <header class="text-center mb-8 flex flex-col items-center">
+            <!-- ปุ่มกลับหน้าหลักแบบโปร่งแสง -->
+            <div class="flex gap-3 mb-6">
+                <a href="../index.html" class="glass-card hover:bg-white/80 dark:hover:bg-dark-300/80 text-xs font-semibold px-4 py-2 rounded-full flex items-center gap-1.5 transition duration-300 shadow-sm">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    หน้าแรก
+                </a>
+                <a href="wordcount.html" class="glass-card hover:bg-white/80 dark:hover:bg-dark-300/80 text-xs font-semibold px-4 py-2 rounded-full flex items-center gap-1.5 transition duration-300 shadow-sm text-purple-600 dark:text-purple-400">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                    เครื่องนับคำ
+                </a>
+                <a href="speedread.html" class="glass-card hover:bg-white/80 dark:hover:bg-dark-300/80 text-xs font-semibold px-4 py-2 rounded-full flex items-center gap-1.5 transition duration-300 shadow-sm text-blue-600 dark:text-blue-400">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    อ่านเร็ว
+                </a>
+            </div>
+            
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 bg-clip-text text-transparent mb-2">
+                Markdown to Rich Text Converter
+            </h1>
+            <p class="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium">
+                แปลง Markdown พรีวิวแบบสด และคัดลอกตารางจัดสไตล์ลง Google Docs ได้ทันที
+            </p>
+        </header>
+
+        <!-- Main Layout Card -->
+        <main class="relative rounded-3xl overflow-hidden glass-card shadow-2xl p-4 sm:p-6 md:p-8 bg-white/60 dark:bg-dark-200/60 backdrop-blur-lg">
+            
+            <!-- สีขอบบนหรูหราหมุนเวียน -->
+            <div class="absolute top-0 left-0 right-0 h-1.5 gradient-top-border"></div>
+
+            <!-- Toolbar & Operations -->
+            <section class="flex flex-col gap-4 mb-6 relative z-10">
+                <!-- Toolbar ปุ่มลัดแปลงข้อความ -->
+                <div class="flex flex-wrap gap-1.5 p-2 rounded-2xl bg-slate-100/80 dark:bg-dark-300/80 border border-slate-200/50 dark:border-white/5 items-center">
+                    
+                    <!-- Text formatting -->
+                    <button onclick="insertShortcut('bold')" title="ตัวหนา" class="toolbar-btn w-9 h-9 flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white hover:text-purple-600 dark:hover:bg-dark-400 dark:hover:text-purple-400 transition-all font-bold">B</button>
+                    <button onclick="insertShortcut('italic')" title="ตัวเอียง" class="toolbar-btn w-9 h-9 flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white hover:text-purple-600 dark:hover:bg-dark-400 dark:hover:text-purple-400 transition-all italic">I</button>
+                    <button onclick="insertShortcut('strike')" title="ขีดฆ่า" class="toolbar-btn w-9 h-9 flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white hover:text-purple-600 dark:hover:bg-dark-400 dark:hover:text-purple-400 transition-all line-through">S</button>
+                    
+                    <div class="w-px h-5 bg-slate-300 dark:bg-slate-700 mx-1"></div>
+
+                    <!-- Headings -->
+                    <button onclick="insertShortcut('h1')" title="หัวข้อใหญ่ H1" class="toolbar-btn px-2.5 h-9 flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white hover:text-purple-600 dark:hover:bg-dark-400 dark:hover:text-purple-400 transition-all font-black text-xs">H1</button>
+                    <button onclick="insertShortcut('h2')" title="หัวข้อรอง H2" class="toolbar-btn px-2.5 h-9 flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white hover:text-purple-600 dark:hover:bg-dark-400 dark:hover:text-purple-400 transition-all font-black text-xs">H2</button>
+                    <button onclick="insertShortcut('h3')" title="หัวข้อย่อย H3" class="toolbar-btn px-2.5 h-9 flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white hover:text-purple-600 dark:hover:bg-dark-400 dark:hover:text-purple-400 transition-all font-black text-xs">H3</button>
+
+                    <div class="w-px h-5 bg-slate-300 dark:bg-slate-700 mx-1"></div>
+
+                    <!-- Elements -->
+                    <button onclick="insertShortcut('ul')" title="รายการแบบจุดวงกลม" class="toolbar-btn w-9 h-9 flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white hover:text-purple-600 dark:hover:bg-dark-400 dark:hover:text-purple-400 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16M2 6h.01M2 12h.01M2 18h.01"/></svg>
+                    </button>
+                    <button onclick="insertShortcut('ol')" title="รายการแบบตัวเลข" class="toolbar-btn w-9 h-9 flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white hover:text-purple-600 dark:hover:bg-dark-400 dark:hover:text-purple-400 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 6h11M9 12h11M9 18h11m-6-12h.01M3 12h.01M3 18h.01"/></svg>
+                    </button>
+                    <button onclick="insertShortcut('quote')" title="คำพูดอ้างอิง Blockquote" class="toolbar-btn w-9 h-9 flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white hover:text-purple-600 dark:hover:bg-dark-400 dark:hover:text-purple-400 transition-all">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.154c-2.433.914-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/></svg>
+                    </button>
+                    <button onclick="insertShortcut('code')" title="โค้ดแบบบรรทัดเดียว" class="toolbar-btn w-9 h-9 flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white hover:text-purple-600 dark:hover:bg-dark-400 dark:hover:text-purple-400 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    </button>
+                    <button onclick="insertShortcut('hr')" title="เส้นแบ่งบรรทัด" class="toolbar-btn w-9 h-9 flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white hover:text-purple-600 dark:hover:bg-dark-400 dark:hover:text-purple-400 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
+                    </button>
+
+                    <div class="w-px h-5 bg-slate-300 dark:bg-slate-700 mx-1"></div>
+
+                    <!-- Special Features: Link & Dynamic Table -->
+                    <button onclick="insertShortcut('link')" title="ลิงก์เชื่อมโยง" class="toolbar-btn w-9 h-9 flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white hover:text-purple-600 dark:hover:bg-dark-400 dark:hover:text-purple-400 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    </button>
+                    
+                    <!-- Table Generator Dropdown Trigger -->
+                    <div class="relative">
+                        <button id="tableMenuBtn" title="แทรกตารางข้อมูล" class="toolbar-btn px-2.5 h-9 flex items-center gap-1 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white hover:text-purple-600 dark:hover:bg-dark-400 dark:hover:text-purple-400 transition-all text-xs font-semibold">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                            <span>ตาราง</span>
+                            <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        
+                        <!-- Table Selection Dropdown (Glassmorphism) -->
+                        <div id="tableDropdown" class="hidden absolute top-11 left-0 z-50 p-4 rounded-2xl glass-card bg-white/95 dark:bg-dark-200/95 border border-slate-200/50 dark:border-white/10 shadow-2xl min-w-[200px] w-auto">
+                            <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">เลือกขนาดตาราง (แถว x คอลัมน์)</h4>
+                            <div class="grid grid-cols-5 gap-1.5 mb-3" id="tableGridContainer">
+                                <!-- Generated Dynamically via JS (5x5 grid selector) -->
+                            </div>
+                            <div id="gridDimensionsLabel" class="text-[10px] text-center font-bold text-purple-600 dark:text-purple-400 mb-3">1 x 1 Table</div>
+                            <button onclick="insertTemplateTable(3, 3)" class="w-full text-center py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg text-xs font-bold transition shadow-sm">
+                                ใช้ขนาดเริ่มต้น (3x3)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Clear and Reset -->
+                    <button id="clearBtn" title="ล้างข้อความทั้งหมด" class="ml-auto w-9 h-9 flex items-center justify-center rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 active:scale-95 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                </div>
+
+                <!-- Export/Copy Action Buttons -->
+                <div class="flex flex-wrap items-center gap-2">
+                    
+                    <!-- Copy Rich Text for Google Docs (The Main Attraction) -->
+                    <button id="btnCopyRich" class="flex-1 sm:flex-initial bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 active:scale-98 text-white px-6 py-2.5 rounded-full flex items-center justify-center gap-2 font-bold shadow-lg shadow-purple-500/20 transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                        <span>คัดลอกตารางไป Google Docs</span>
+                    </button>
+
+                    <button id="btnCopyHtml" class="bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white px-4 py-2.5 rounded-full flex items-center justify-center gap-1.5 text-sm font-semibold shadow-md shadow-indigo-500/10 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <span>คัดลอกรหัส HTML</span>
+                    </button>
+
+                    <button id="btnCopyMarkdown" class="bg-slate-600 hover:bg-slate-700 active:scale-98 text-white px-4 py-2.5 rounded-full flex items-center justify-center gap-1.5 text-sm font-semibold shadow-md shadow-slate-500/10 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        <span>คัดลอก Markdown ดิบ</span>
+                    </button>
+                    
+                    <!-- Auto-save notification area -->
+                    <div class="ml-auto text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1" id="autoSaveIndicator">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        <span>สแกนข้อมูลอัตโนมัติแล้ว</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Mobile Layout Tab Selection -->
+            <div class="flex md:hidden gap-2 mb-4">
+                <button id="tabEditBtn" class="flex-1 py-2 text-center font-bold text-sm rounded-xl bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-900/30">
+                    แก้ไข (Markdown)
+                </button>
+                <button id="tabPreviewBtn" class="flex-1 py-2 text-center font-bold text-sm rounded-xl bg-slate-100 dark:bg-dark-300 text-slate-500 dark:text-slate-400">
+                    ดูพรีวิว (Rich Text)
+                </button>
+            </div>
+
+            <!-- Workspace: Grid Split-Pane -->
+            <section class="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+                <!-- Left Pane: Editor input -->
+                <div id="editorPane" class="flex flex-col gap-2 transition-all duration-300">
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm font-bold tracking-wider text-purple-700 dark:text-purple-400 uppercase flex items-center gap-1.5">
+                            <span class="w-1.5 h-3 bg-purple-600 rounded-full"></span>
+                            Markdown Editor
+                        </label>
+                        <span class="text-[10px] text-slate-400 dark:text-slate-500">รองรับตาราง, ข้อความจัดรูปแบบ, และรายการ</span>
+                    </div>
+                    
+                    <div class="relative group">
+                        <!-- เรืองแสงเมื่อ focus -->
+                        <div class="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl blur opacity-0 group-focus-within:opacity-15 transition duration-500"></div>
+                        <textarea id="markdownInput"
+                            class="relative w-full h-[450px] sm:h-[500px] p-4 text-sm sm:text-base rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 transition-all font-mono shadow-inner leading-relaxed resize-none placeholder-slate-400 dark:placeholder-slate-600"
+                            placeholder="# หัวข้อตาราง&#10;&#10;| สินค้า | ราคา (บาท) | จำนวน |&#10;| :--- | :---: | :---: |&#10;| หนังสือ Markdown | 350 | 2 |&#10;| เมาส์ไร้สายพรีเมียม | 1,290 | 1 |&#10;| สมุดจดปากกาลูกลื่น | 120 | 5 |"></textarea>
+                    </div>
+                </div>
+
+                <!-- Right Pane: Live preview -->
+                <div id="previewPane" class="hidden md:flex flex-col gap-2 transition-all duration-300">
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm font-bold tracking-wider text-pink-700 dark:text-pink-400 uppercase flex items-center gap-1.5">
+                            <span class="w-1.5 h-3 bg-pink-600 rounded-full"></span>
+                            Rich Text Preview
+                        </label>
+                        <span class="text-[10px] text-green-500 dark:text-green-400 flex items-center gap-0.5">
+                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                            Live Render
+                        </span>
+                    </div>
+
+                    <div class="relative group">
+                        <!-- เรืองแสงสีชมพูตามธีม -->
+                        <div class="absolute -inset-0.5 bg-gradient-to-r from-pink-500 to-purple-500 rounded-2xl blur opacity-0 group-focus-within:opacity-15 transition duration-500"></div>
+                        
+                        <div id="previewArea"
+                            class="markdown-preview relative w-full h-[450px] sm:h-[500px] p-4 overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none transition-all shadow-inner leading-relaxed">
+                            <!-- Rendered HTML will live here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bottom Counter Statistics (Glassmorphism row) -->
+            <footer class="mt-6 p-4 rounded-2xl bg-slate-100/40 dark:bg-dark-300/40 border border-slate-200/50 dark:border-white/5 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center relative z-10">
+                <div class="stat-card">
+                    <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">ตัวอักษรทั้งหมด</div>
+                    <div id="statChars" class="text-lg font-extrabold text-purple-600 dark:text-purple-400">0</div>
+                </div>
+                <div class="stat-card border-l border-slate-200 dark:border-slate-800">
+                    <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">จำนวนคำ</div>
+                    <div id="statWords" class="text-lg font-extrabold text-indigo-600 dark:text-indigo-400">0</div>
+                </div>
+                <div class="stat-card border-l border-slate-200 dark:border-slate-800">
+                    <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">จำนวนย่อหน้า</div>
+                    <div id="statParagraphs" class="text-lg font-extrabold text-pink-600 dark:text-pink-400">0</div>
+                </div>
+                <div class="stat-card border-l border-slate-200 dark:border-slate-800">
+                    <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">ตารางที่พบ</div>
+                    <div id="statTables" class="text-lg font-extrabold text-rose-600 dark:text-rose-400">0</div>
+                </div>
+            </footer>
+        </main>
+        
+        <!-- Copyright -->
+        <div class="text-center mt-8 text-xs text-slate-400 dark:text-slate-600 font-medium">
+            © <span id="currentYear">2026</span> THE Facility | Markdown to Google Docs Table Engine
+        </div>
+    </div>
+
+    <!-- โหลด Model และ Controller แยกอย่างเรียบร้อยตามแบบแผน MVC -->
+    <script src="../model/markdown.model.js"></script>
+    <script src="../controller/markdown.controller.js"></script>
+    
+    <script>
+        // ทำการสร้าง Instance ของคอนโทรลเลอร์เมื่อ DOM โหลดเรียบร้อย
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.MarkdownController) {
+                window.markdownControllerInstance = new MarkdownController();
+            } else {
+                console.error("MarkdownController class is not loaded!");
+            }
+        });
+    </script>
+</body>
+
+</html>
