@@ -68,23 +68,28 @@ const MarkdownModel = {
     },
 
     // จัดสไตล์ Inline สำหรับนำไปวางใน Google Docs / Word
-    generateRichHtmlForClipboard(previewHtml, rawMarkdown) {
+    generateRichHtmlForClipboard(previewHtml, rawMarkdown, thBg, thText, border) {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = previewHtml;
 
+        // Fallback colors if none provided
+        const finalThBg = thBg || '#f1f5f9';
+        const finalThText = thText || '#1e293b';
+        const finalBorder = border || '#cbd5e1';
+
         // 1. จัดการ <table> ทั้งหมด
         tempDiv.querySelectorAll('table').forEach(table => {
-            table.setAttribute('style', 'border-collapse: collapse; width: 100%; border: 1px solid #1e293b; margin: 15px 0; font-family: Arial, sans-serif;');
+            table.setAttribute('style', `border-collapse: collapse; width: 100%; border: 1px solid ${finalBorder}; margin: 15px 0; font-family: Arial, sans-serif;`);
         });
 
         // 2. จัดการ <th> (หัวตาราง)
         tempDiv.querySelectorAll('th').forEach(th => {
-            th.setAttribute('style', 'border: 1px solid #475569; padding: 10px 14px; background-color: #f1f5f9; color: #1e293b; font-weight: bold; text-align: left;');
+            th.setAttribute('style', `border: 1px solid ${finalBorder}; padding: 10px 14px; background-color: ${finalThBg}; color: ${finalThText}; font-weight: bold; text-align: left;`);
         });
 
         // 3. จัดการ <td> (ช่องตาราง)
         tempDiv.querySelectorAll('td').forEach(td => {
-            td.setAttribute('style', 'border: 1px solid #cbd5e1; padding: 10px 14px; color: #334155; vertical-align: top;');
+            td.setAttribute('style', `border: 1px solid ${finalBorder}; padding: 10px 14px; color: #334155; vertical-align: top;`);
         });
 
         // 4. จัดการ <blockquote>

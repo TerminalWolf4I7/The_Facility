@@ -38,6 +38,16 @@ class MarkdownController {
         this.tableDropdown = document.getElementById('tableDropdown');
         this.tableGridContainer = document.getElementById('tableGridContainer');
         this.gridDimensionsLabel = document.getElementById('gridDimensionsLabel');
+
+        // Table customizers
+        this.colorThBg = document.getElementById('colorThBg');
+        this.colorThText = document.getElementById('colorThText');
+        this.colorBorder = document.getElementById('colorBorder');
+        this.presetNeutral = document.getElementById('presetNeutral');
+        this.presetPurple = document.getElementById('presetPurple');
+        this.presetBlue = document.getElementById('presetBlue');
+        this.presetGreen = document.getElementById('presetGreen');
+        this.presetOrange = document.getElementById('presetOrange');
     }
 
     init() {
@@ -64,6 +74,9 @@ class MarkdownController {
 
         // 4. ซิงค์ธีมดั้งเดิม
         this.syncThemeOnLoad();
+
+        // 4.5. โหลดค่าปรับแต่งสีตาราง
+        this.initTableCustomizers();
 
         // 5. โหลดข้อมูลเดิมที่บันทึกไว้ (ทำก่อน Animation)
         this.loadInitialContent();
@@ -114,6 +127,9 @@ class MarkdownController {
         // 1. แปลงด้วย Model
         const html = this.model.parseMarkdown(text);
         this.previewArea.innerHTML = html;
+
+        // ตกแต่งตารางใน Preview
+        this.applyCustomStylesToPreview();
 
         // 2. เรียก Highlight.js สำหรับ Code blocks
         if (window.hljs) {
@@ -180,8 +196,12 @@ class MarkdownController {
             return;
         }
 
+        const thBg = this.colorThBg.value;
+        const thText = this.colorThText.value;
+        const border = this.colorBorder.value;
+
         // จัดสไตล์ Inline สำหรับ Google Docs ผ่าน Model
-        const docsHtml = this.model.generateRichHtmlForClipboard(html, rawText);
+        const docsHtml = this.model.generateRichHtmlForClipboard(html, rawText, thBg, thText, border);
 
         try {
             const htmlBlob = new Blob([docsHtml], { type: 'text/html' });
@@ -301,6 +321,94 @@ class MarkdownController {
                 this.tableGridContainer.appendChild(cell);
             }
         }
+    }
+
+    initTableCustomizers() {
+        // Load from localStorage or use defaults (Neutral theme)
+        const savedThBg = localStorage.getItem('table-th-bg');
+        const savedThText = localStorage.getItem('table-th-text');
+        const savedBorder = localStorage.getItem('table-border');
+
+        if (savedThBg) this.colorThBg.value = savedThBg;
+        if (savedThText) this.colorThText.value = savedThText;
+        if (savedBorder) this.colorBorder.value = savedBorder;
+
+        // Listeners for manual pickers
+        const handleColorInput = () => {
+            this.applyCustomStylesToPreview();
+        };
+
+        const handleColorChange = () => {
+            localStorage.setItem('table-th-bg', this.colorThBg.value);
+            localStorage.setItem('table-th-text', this.colorThText.value);
+            localStorage.setItem('table-border', this.colorBorder.value);
+        };
+
+        [this.colorThBg, this.colorThText, this.colorBorder].forEach(input => {
+            if (input) {
+                input.addEventListener('input', handleColorInput);
+                input.addEventListener('change', handleColorChange);
+            }
+        });
+
+        // Theme presets configuration
+        const presets = {
+            neutral: { bg: '#f1f5f9', text: '#1e293b', border: '#cbd5e1' },
+            purple: { bg: '#f5f3ff', text: '#6d28d9', border: '#ddd6fe' },
+            blue: { bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe' },
+            green: { bg: '#ecfdf5', text: '#047857', border: '#a7f3d0' },
+            orange: { bg: '#fff7ed', text: '#c2410c', border: '#ffedd5' }
+        };
+
+        const applyPreset = (themeKey) => {
+            const p = presets[themeKey];
+            if (p) {
+                this.colorThBg.value = p.bg;
+                this.colorThText.value = p.text;
+                this.colorBorder.value = p.border;
+                handleColorChange();
+                this.applyCustomStylesToPreview();
+                
+                // Active feedback animation if GSAP is loaded
+                if (window.gsap) {
+                    const btn = document.getElementById(`preset${themeKey.charAt(0).toUpperCase() + themeKey.slice(1)}`);
+                    if (btn) {
+                        window.gsap.fromTo(btn, { scale: 0.95 }, { scale: 1, duration: 0.2 });
+                    }
+                }
+            }
+        };
+
+        if (this.presetNeutral) this.presetNeutral.addEventListener('click', () => applyPreset('neutral'));
+        if (this.presetPurple) this.presetPurple.addEventListener('click', () => applyPreset('purple'));
+        if (this.presetBlue) this.presetBlue.addEventListener('click', () => applyPreset('blue'));
+        if (this.presetGreen) this.presetGreen.addEventListener('click', () => applyPreset('green'));
+        if (this.presetOrange) this.presetOrange.addEventListener('click', () => applyPreset('orange'));
+    }
+
+    applyCustomStylesToPreview() {
+        if (!this.previewArea) return;
+
+        const thBg = this.colorThBg.value;
+        const thText = this.colorThText.value;
+        const border = this.colorBorder.value;
+
+        // Style the tables in the preview area
+        this.previewArea.querySelectorAll('table').forEach(table => {
+            table.style.border = `1px solid ${border}`;
+            table.style.borderCollapse = 'collapse';
+        });
+
+        this.previewArea.querySelectorAll('th').forEach(th => {
+            th.style.backgroundColor = thBg;
+            th.style.color = thText;
+            th.style.border = `1px solid ${border}`;
+        });
+
+        this.previewArea.querySelectorAll('td').forEach(td => {
+            td.style.border = `1px solid ${border}`;
+            td.style.borderColor = border;
+        });
     }
 
     highlightTableDropdownCells(rows, cols) {

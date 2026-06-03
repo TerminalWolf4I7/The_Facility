@@ -87,27 +87,18 @@
         }
 
         .markdown-preview th {
-            background-color: rgba(139, 92, 246, 0.1);
-            color: #7c3aed;
             font-weight: 700;
-            border-bottom: 2px solid rgba(139, 92, 246, 0.2);
             padding: 12px 16px;
-        }
-
-        .dark .markdown-preview th {
-            background-color: rgba(139, 92, 246, 0.15);
-            color: #a78bfa;
-            border-bottom: 2px solid rgba(139, 92, 246, 0.3);
+            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
         }
 
         .markdown-preview td {
             padding: 12px 16px;
-            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
             color: #4b5563;
+            transition: border-color 0.2s;
         }
 
         .dark .markdown-preview td {
-            border-bottom: 1px solid rgba(75, 85, 99, 0.3);
             color: #d1d5db;
         }
 
@@ -263,6 +254,10 @@
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                     อ่านเร็ว
                 </a>
+                <a href="clipboard.html" class="glass-card hover:bg-white/80 dark:hover:bg-dark-300/80 text-xs font-semibold px-4 py-2 rounded-full flex items-center gap-1.5 transition duration-300 shadow-sm text-emerald-600 dark:text-emerald-400">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3"/></svg>
+                    คลิปบอร์ดออนไลน์
+                </a>
             </div>
             
             <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500 bg-clip-text text-transparent mb-2">
@@ -280,7 +275,7 @@
             <div class="absolute top-0 left-0 right-0 h-1.5 gradient-top-border"></div>
 
             <!-- Toolbar & Operations -->
-            <section class="flex flex-col gap-4 mb-6 relative z-10">
+            <section class="flex flex-col gap-4 mb-6 relative z-20">
                 <!-- Toolbar ปุ่มลัดแปลงข้อความ -->
                 <div class="flex flex-wrap gap-1.5 p-2 rounded-2xl bg-slate-100/80 dark:bg-dark-300/80 border border-slate-200/50 dark:border-white/5 items-center">
                     
@@ -347,6 +342,37 @@
                     <button id="clearBtn" title="ล้างข้อความทั้งหมด" class="ml-auto w-9 h-9 flex items-center justify-center rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 active:scale-95 transition-all">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
+                </div>
+
+                <!-- Table Color Customizer Panel (Glassmorphism) -->
+                <div id="tableCustomizerPanel" class="p-3 rounded-2xl bg-slate-100/50 dark:bg-dark-300/50 border border-slate-200/30 dark:border-white/5 flex flex-wrap items-center gap-4 transition duration-300">
+                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+                        ปรับแต่งสีตาราง:
+                    </span>
+                    <!-- Predefined Themes -->
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <button type="button" id="presetNeutral" class="px-2.5 py-1 text-xs rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:scale-105 active:scale-95 transition font-semibold">เรียบง่าย</button>
+                        <button type="button" id="presetPurple" class="px-2.5 py-1 text-xs rounded-lg bg-purple-600 text-white hover:scale-105 active:scale-95 transition font-semibold">ม่วง</button>
+                        <button type="button" id="presetBlue" class="px-2.5 py-1 text-xs rounded-lg bg-blue-600 text-white hover:scale-105 active:scale-95 transition font-semibold">น้ำเงิน</button>
+                        <button type="button" id="presetGreen" class="px-2.5 py-1 text-xs rounded-lg bg-emerald-600 text-white hover:scale-105 active:scale-95 transition font-semibold">เขียว</button>
+                        <button type="button" id="presetOrange" class="px-2.5 py-1 text-xs rounded-lg bg-orange-500 text-white hover:scale-105 active:scale-95 transition font-semibold">ส้ม</button>
+                    </div>
+                    <!-- Custom Color Pickers -->
+                    <div class="flex flex-wrap items-center gap-3.5 ml-auto sm:ml-0">
+                        <label class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 cursor-pointer">
+                            <span>พื้นหลังหัวข้อ</span>
+                            <input type="color" id="colorThBg" value="#f1f5f9" class="w-6 h-6 p-0 border-0 rounded cursor-pointer bg-transparent">
+                        </label>
+                        <label class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 cursor-pointer">
+                            <span>ตัวอักษรหัวข้อ</span>
+                            <input type="color" id="colorThText" value="#1e293b" class="w-6 h-6 p-0 border-0 rounded cursor-pointer bg-transparent">
+                        </label>
+                        <label class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 cursor-pointer">
+                            <span>เส้นขอบ</span>
+                            <input type="color" id="colorBorder" value="#cbd5e1" class="w-6 h-6 p-0 border-0 rounded cursor-pointer bg-transparent">
+                        </label>
+                    </div>
                 </div>
 
                 <!-- Export/Copy Action Buttons -->
