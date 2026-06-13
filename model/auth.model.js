@@ -16,6 +16,31 @@ const AuthModel = (() => {
   let _hashedId = null;
   let _sessionCallback = null;
 
+  // Rate limiting (5 connection attempts per 60 seconds)
+  const connectionLimiter = SecurityUtils.createRateLimiter(5, 60000);
+
+  // XOR-based Obfuscation using browser fingerprint
+  function _obfuscate(text, key) {
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+      result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return btoa(result);
+  }
+
+  function _deobfuscate(b64, key) {
+    try {
+      const text = atob(b64);
+      let result = '';
+      for (let i = 0; i < text.length; i++) {
+        result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+      }
+      return result;
+    } catch (e) {
+      return null;
+    }
+  }
+
   // ----------------------------------------------------------------
   // SHA-256 Hashing helper
   // ----------------------------------------------------------------
@@ -39,11 +64,53 @@ const AuthModel = (() => {
     _firebaseApp = initializeApp(config);
     _db = getFirestore(_firebaseApp);
 
-    // Restore session from localStorage
-    const savedId = localStorage.getItem('the_facility_clipboard_id');
-    if (savedId) {
-      _rawId = savedId;
-      _hashedId = await _hashId(savedId);
+    // Compute browser fingerprint (User-Agent based hash)
+    const fp = await _hashId(navigator.userAgent);
+    const now = Date.now();
+
+    // Check legacy plaintext session ID and upgrade it
+    const savedIdLegacy = localStorage.getItem('the_facility_clipboard_id');
+    if (savedIdLegacy) {
+      if (SecurityUtils.validateClipboardId(savedIdLegacy)) {
+        _rawId = savedIdLegacy;
+        _hashedId = await _hashId(savedIdLegacy);
+        localStorage.setItem('the_facility_clipboard_id_enc', _obfuscate(savedIdLegacy, fp));
+        localStorage.setItem('the_facility_clipboard_fp', fp);
+        localStorage.setItem('the_facility_clipboard_last_active', now.toString());
+      }
+      localStorage.removeItem('the_facility_clipboard_id');
+    } else {
+      // Restore encrypted session from localStorage
+      const encryptedId = localStorage.getItem('the_facility_clipboard_id_enc');
+      const storedFp = localStorage.getItem('the_facility_clipboard_fp');
+      const lastActive = localStorage.getItem('the_facility_clipboard_last_active');
+
+      let sessionValid = true;
+      if (lastActive) {
+        const diff = now - parseInt(lastActive, 10);
+        if (diff > 86400000) { // 24 hours
+          sessionValid = false;
+        }
+      } else {
+        sessionValid = false;
+      }
+
+      if (storedFp !== fp) {
+        sessionValid = false;
+      }
+
+      if (sessionValid && encryptedId) {
+        const decrypted = _deobfuscate(encryptedId, fp);
+        if (decrypted && SecurityUtils.validateClipboardId(decrypted)) {
+          _rawId = decrypted;
+          _hashedId = await _hashId(decrypted);
+          localStorage.setItem('the_facility_clipboard_last_active', now.toString()); // Update timestamp
+        } else {
+          clearSession();
+        }
+      } else {
+        clearSession();
+      }
     }
 
     _initialized = true;
@@ -66,16 +133,31 @@ const AuthModel = (() => {
   // ----------------------------------------------------------------
   async function setClipboardId(id) {
     if (!id || !id.trim()) throw new Error('Clipboard ID cannot be empty.');
-    
-    _rawId = id.trim();
+
+    // Rate limiting check
+    if (!connectionLimiter.check()) {
+      const remaining = connectionLimiter.getRemainingTime();
+      throw new Error(`พยายามเชื่อมต่อบ่อยเกินไป กรุณารออีก ${remaining} วินาที (Too many attempts. Please wait.)`);
+    }
+
+    const cleanId = id.trim();
+    // Input validation
+    if (!SecurityUtils.validateClipboardId(cleanId)) {
+      throw new Error('รหัสคลิปบอร์ดไม่ถูกต้อง ต้องมีความยาว 6-256 ตัวอักษร และประกอบด้วยตัวภาษาอังกฤษ ตัวเลข ขีด (-) หรืออันเดอร์สกอร์ (_) เท่านั้น');
+    }
+
+    _rawId = cleanId;
     _hashedId = await _hashId(_rawId);
-    
-    localStorage.setItem('the_facility_clipboard_id', _rawId);
-    
+
+    const fp = await _hashId(navigator.userAgent);
+    localStorage.setItem('the_facility_clipboard_id_enc', _obfuscate(_rawId, fp));
+    localStorage.setItem('the_facility_clipboard_fp', fp);
+    localStorage.setItem('the_facility_clipboard_last_active', Date.now().toString());
+
     if (_sessionCallback) {
       _sessionCallback(_rawId, _hashedId);
     }
-    
+
     return { rawId: _rawId, hashedId: _hashedId };
   }
 
@@ -85,8 +167,11 @@ const AuthModel = (() => {
   function clearSession() {
     _rawId = null;
     _hashedId = null;
-    localStorage.removeItem('the_facility_clipboard_id');
-    
+    localStorage.removeItem('the_facility_clipboard_id_enc');
+    localStorage.removeItem('the_facility_clipboard_fp');
+    localStorage.removeItem('the_facility_clipboard_last_active');
+    localStorage.removeItem('the_facility_clipboard_id'); // old key cleanup
+
     if (_sessionCallback) {
       _sessionCallback(null, null);
     }

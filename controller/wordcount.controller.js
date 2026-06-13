@@ -244,7 +244,7 @@
                 </head>
                 <body>
                     <h2>ข้อความสำหรับพิมพ์:</h2>
-                    <pre>${textToPrint.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre> 
+                    <pre>${SecurityUtils.escapeHtml(textToPrint)}</pre> 
                 </body></html>`);
             printWindow.document.close();
             printWindow.onload = () => {

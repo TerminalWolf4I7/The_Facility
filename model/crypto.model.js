@@ -17,11 +17,10 @@ const CryptoModel = (() => {
   const APP_SECRET = 'TheF@cility-C1ipboard-2026'; // Add pepper
 
   // ----------------------------------------------------------------
-  // Derive a CryptoKey from the raw Clipboard ID + app secret
+  // Derive a CryptoKey from the raw Clipboard ID + app secret + salt
   // ----------------------------------------------------------------
-  async function deriveKey(clipboardId) {
+  async function _deriveKeyWithSalt(clipboardId, salt) {
     const enc = new TextEncoder();
-    // Import the raw key material (Clipboard ID + secret)
     const keyMaterial = await crypto.subtle.importKey(
       'raw',
       enc.encode(clipboardId + APP_SECRET),
@@ -29,9 +28,6 @@ const CryptoModel = (() => {
       false,
       ['deriveKey']
     );
-
-    // Use Clipboard ID as salt (deterministic — same ID always gets same key)
-    const salt = enc.encode(clipboardId.padEnd(16, '0').substring(0, 16));
 
     return crypto.subtle.deriveKey(
       {
@@ -47,12 +43,20 @@ const CryptoModel = (() => {
     );
   }
 
+  // Legacy key derivation (v1)
+  async function _deriveKeyLegacy(clipboardId) {
+    const enc = new TextEncoder();
+    const salt = enc.encode(clipboardId.padEnd(16, '0').substring(0, 16));
+    return _deriveKeyWithSalt(clipboardId, salt);
+  }
+
   // ----------------------------------------------------------------
-  // Encrypt plaintext → base64 string { iv, ciphertext }
+  // Encrypt plaintext → base64 string { salt, iv, ciphertext }
   // ----------------------------------------------------------------
   async function encrypt(plaintext, clipboardId) {
-    const key = await deriveKey(clipboardId);
+    const salt = crypto.getRandomValues(new Uint8Array(16)); // 128-bit random salt
     const iv = crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV for GCM
+    const key = await _deriveKeyWithSalt(clipboardId, salt);
     const enc = new TextEncoder();
 
     const cipherBuffer = await crypto.subtle.encrypt(
@@ -61,33 +65,60 @@ const CryptoModel = (() => {
       enc.encode(plaintext)
     );
 
-    // Pack: base64(iv) + ':' + base64(ciphertext)
+    // Pack: 'v2' + ':' + base64(salt) + ':' + base64(iv) + ':' + base64(ciphertext)
+    const saltB64 = btoa(String.fromCharCode(...salt));
     const ivB64 = btoa(String.fromCharCode(...iv));
     const ctB64 = btoa(String.fromCharCode(...new Uint8Array(cipherBuffer)));
 
-    return `${ivB64}:${ctB64}`;
+    return `v2:${saltB64}:${ivB64}:${ctB64}`;
   }
 
   // ----------------------------------------------------------------
-  // Decrypt base64 string → plaintext
+  // Decrypt base64 string → plaintext (supports v2 and legacy v1)
   // ----------------------------------------------------------------
   async function decrypt(encryptedStr, clipboardId) {
-    const [ivB64, ctB64] = encryptedStr.split(':');
-    if (!ivB64 || !ctB64) throw new Error('Invalid encrypted data format.');
+    if (typeof encryptedStr !== 'string') throw new Error('Invalid encrypted data.');
 
-    const key = await deriveKey(clipboardId);
-    const iv = Uint8Array.from(atob(ivB64), c => c.charCodeAt(0));
-    const ct = Uint8Array.from(atob(ctB64), c => c.charCodeAt(0));
+    if (encryptedStr.startsWith('v2:')) {
+      const parts = encryptedStr.split(':');
+      if (parts.length !== 4) throw new Error('Invalid v2 encrypted format.');
+      const [, saltB64, ivB64, ctB64] = parts;
 
-    try {
-      const plainBuffer = await crypto.subtle.decrypt(
-        { name: ALGO, iv },
-        key,
-        ct
-      );
-      return new TextDecoder().decode(plainBuffer);
-    } catch {
-      throw new Error('Decryption failed. Data may be corrupted or key mismatch.');
+      const salt = Uint8Array.from(atob(saltB64), c => c.charCodeAt(0));
+      const iv = Uint8Array.from(atob(ivB64), c => c.charCodeAt(0));
+      const ct = Uint8Array.from(atob(ctB64), c => c.charCodeAt(0));
+
+      const key = await _deriveKeyWithSalt(clipboardId, salt);
+      try {
+        const plainBuffer = await crypto.subtle.decrypt(
+          { name: ALGO, iv },
+          key,
+          ct
+        );
+        return new TextDecoder().decode(plainBuffer);
+      } catch (e) {
+        throw new Error('Decryption failed. Data may be corrupted or key mismatch.');
+      }
+    } else {
+      // Legacy v1 decrypt
+      const parts = encryptedStr.split(':');
+      if (parts.length !== 2) throw new Error('Invalid legacy encrypted format.');
+      const [ivB64, ctB64] = parts;
+
+      const iv = Uint8Array.from(atob(ivB64), c => c.charCodeAt(0));
+      const ct = Uint8Array.from(atob(ctB64), c => c.charCodeAt(0));
+
+      const key = await _deriveKeyLegacy(clipboardId);
+      try {
+        const plainBuffer = await crypto.subtle.decrypt(
+          { name: ALGO, iv },
+          key,
+          ct
+        );
+        return new TextDecoder().decode(plainBuffer);
+      } catch (e) {
+        throw new Error('Decryption failed. Legacy data may be corrupted or key mismatch.');
+      }
     }
   }
 
@@ -151,13 +182,13 @@ const CryptoModel = (() => {
       throw new Error('Wrong password or corrupted data.');
     }
   }
-
   // ----------------------------------------------------------------
   // Check if a string is encrypted by this module
   // ----------------------------------------------------------------
   function isEncrypted(str) {
     return typeof str === 'string' && (
-      str.includes(':') && str.split(':').length === 2 ||
+      str.startsWith('v2:') ||
+      (str.includes(':') && str.split(':').length === 2) ||
       str.startsWith('pw:')
     );
   }

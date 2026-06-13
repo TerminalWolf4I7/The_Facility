@@ -7,6 +7,9 @@
 // ================================================================
 
 const ClipboardModel = (() => {
+  // Rate limiter for CRUD operations (30 operations per 60 seconds)
+  const crudLimiter = SecurityUtils.createRateLimiter(30, 60000);
+
   // ----------------------------------------------------------------
   // Helpers: generate a short random share token
   // ----------------------------------------------------------------
@@ -21,6 +24,21 @@ const ClipboardModel = (() => {
   // CREATE a new clip (encrypted)
   // ----------------------------------------------------------------
   async function createClip({ title, content, language = 'plain', isPublic = false, expiresAt = null, clipPassword = null }, rawId, hashedId) {
+    if (!crudLimiter.check()) {
+      const remaining = crudLimiter.getRemainingTime();
+      throw new Error(`ส่งข้อมูลบ่อยเกินไป กรุณารออีก ${remaining} วินาที (Too many requests. Please wait.)`);
+    }
+
+    if (language && !/^[a-zA-Z0-9\-+]{1,20}$/.test(language)) {
+      throw new Error('ประเภทภาษาไม่ถูกต้อง / Invalid language type');
+    }
+
+    if (!SecurityUtils.validateContentSize(content, 512000)) {
+      throw new Error('ขนาดเนื้อหาเกินขีดจำกัด (สูงสุด 500KB) / Content size limit exceeded (max 500KB)');
+    }
+
+    const cleanTitle = SecurityUtils.escapeHtml(title.trim() || 'Untitled Clip').substring(0, 200);
+
     const { collection, addDoc, Timestamp } =
       await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
 
@@ -42,7 +60,7 @@ const ClipboardModel = (() => {
 
     const clipData = {
       userId: hashedId,                 // Query index is the SHA-256 hash of the ID
-      title: title.trim() || 'Untitled Clip',
+      title: cleanTitle,
       content: encryptedContent,       // Ciphertext (or plaintext if public)
       language,
       isPublic,
@@ -158,6 +176,21 @@ const ClipboardModel = (() => {
   // UPDATE a clip
   // ----------------------------------------------------------------
   async function updateClip(clipId, { title, content, language, isPublic, expiresAt, clipPassword }, rawId, hashedId) {
+    if (!crudLimiter.check()) {
+      const remaining = crudLimiter.getRemainingTime();
+      throw new Error(`ส่งข้อมูลบ่อยเกินไป กรุณารออีก ${remaining} วินาที (Too many requests. Please wait.)`);
+    }
+
+    if (language && !/^[a-zA-Z0-9\-+]{1,20}$/.test(language)) {
+      throw new Error('ประเภทภาษาไม่ถูกต้อง / Invalid language type');
+    }
+
+    if (!SecurityUtils.validateContentSize(content, 512000)) {
+      throw new Error('ขนาดเนื้อหาเกินขีดจำกัด (สูงสุด 500KB) / Content size limit exceeded (max 500KB)');
+    }
+
+    const cleanTitle = SecurityUtils.escapeHtml(title.trim() || 'Untitled Clip').substring(0, 200);
+
     const { doc, updateDoc, Timestamp } =
       await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
 
@@ -173,7 +206,7 @@ const ClipboardModel = (() => {
     }
 
     const updates = {
-      title: title.trim() || 'Untitled Clip',
+      title: cleanTitle,
       content: encryptedContent,
       language,
       isPublic,
@@ -194,6 +227,11 @@ const ClipboardModel = (() => {
   // DELETE a clip
   // ----------------------------------------------------------------
   async function deleteClip(clipId) {
+    if (!crudLimiter.check()) {
+      const remaining = crudLimiter.getRemainingTime();
+      throw new Error(`ส่งข้อมูลบ่อยเกินไป กรุณารออีก ${remaining} วินาที (Too many requests. Please wait.)`);
+    }
+
     const { doc, deleteDoc } =
       await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
 
@@ -253,6 +291,15 @@ const ClipboardModel = (() => {
   // Toggle isPublic on a clip
   // ----------------------------------------------------------------
   async function togglePublic(clipId, isPublic, content, rawId) {
+    if (!crudLimiter.check()) {
+      const remaining = crudLimiter.getRemainingTime();
+      throw new Error(`ส่งข้อมูลบ่อยเกินไป กรุณารออีก ${remaining} วินาที (Too many requests. Please wait.)`);
+    }
+
+    if (!SecurityUtils.validateContentSize(content, 512000)) {
+      throw new Error('ขนาดเนื้อหาเกินขีดจำกัด (สูงสุด 500KB) / Content size limit exceeded (max 500KB)');
+    }
+
     const { doc, updateDoc, Timestamp } =
       await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
 

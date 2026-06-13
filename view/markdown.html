@@ -4,6 +4,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Security Meta Tags -->
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src 'self'; 
+                   script-src 'self' 'unsafe-inline' 'unsafe-eval' 
+                       https://cdn.tailwindcss.com 
+                       https://cdnjs.cloudflare.com 
+                       https://www.gstatic.com
+                       https://cdn.jsdelivr.net; 
+                   style-src 'self' 'unsafe-inline' 
+                       https://fonts.googleapis.com 
+                       https://cdnjs.cloudflare.com; 
+                   font-src https://fonts.gstatic.com 
+                       https://cdnjs.cloudflare.com; 
+                   connect-src 'self' 
+                       https://firestore.googleapis.com 
+                       https://*.firebaseio.com 
+                       https://www.googleapis.com 
+                       https://securetoken.googleapis.com; 
+                   img-src 'self' data:; 
+                   frame-src 'none'; 
+                   object-src 'none'; 
+                   base-uri 'self';">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>Markdown to Rich Text Converter | THE Facility</title>
     <meta name="description" content="แปลงไฟล์ Markdown ของคุณเป็นข้อความ Rich Text (HTML) แบบเรียลไทม์ พร้อมความสามารถในการคัดลอกตารางไปวางใน Google Docs ได้โดยตรงอย่างสวยงาม">
     
@@ -12,12 +37,13 @@
     
     <!-- Tailwind CSS & GSAP -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" integrity="sha512-7eHRwcbYkK4d9g/6tD/mhkf++eoTHwpNM9woBxtPUBWm67zeAfFC+HrdoE2GanKeocly/VxeLvIqwvCdk7qScg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <!-- Libraries สำหรับ Markdown และ Highlight โค้ด -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" integrity="sha512-rCQgmUulW6f6QegOvTntKKb5IAoxTpGVCdWqYjkXEpzAns6XUFs8NKVqWe+KQpctp/EoRSFSuykVputqknLYMg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" integrity="sha512-rO+olRTkcf304DQBxSWxln8JXCzTHlKnIdnMUwYvQa9/Jd4cQaNkItIUj6Z4nvW1dqK0SKXLbn9h4KwZTNtAyw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js" integrity="sha512-JatFEe90fJU2nrgf27fUz2hWRvdYrSlTEV8esFuqCtfiqWN8phkS1fUl/xCfYyrLDQcNf3YyS0V9hG7U4RHNmQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <script>
         tailwind.config = {
@@ -486,6 +512,7 @@
     </div>
 
     <!-- โหลด Model และ Controller แยกอย่างเรียบร้อยตามแบบแผน MVC -->
+    <script src="../model/security.utils.js"></script>
     <script src="../model/markdown.model.js"></script>
     <script src="../controller/markdown.controller.js"></script>
     

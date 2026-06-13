@@ -36,7 +36,17 @@ const MarkdownModel = {
         try {
             if (window.marked) {
                 // เรียกใช้ marked.parse
-                return window.marked.parse(markdownText);
+                const rawHtml = window.marked.parse(markdownText);
+                if (window.DOMPurify) {
+                    return window.DOMPurify.sanitize(rawHtml, {
+                        ALLOWED_TAGS: ['h1','h2','h3','h4','h5','h6','p','br','strong','em',
+                                       'code','pre','blockquote','ul','ol','li','table','thead',
+                                       'tbody','tr','th','td','a','img','hr','del','sup','sub'],
+                        ALLOWED_ATTR: ['href','src','alt','class','id','target','rel'],
+                        ALLOW_DATA_ATTR: false,
+                    });
+                }
+                return rawHtml;
             }
             // กรณีไม่มี library โหลดอยู่ ให้แสดงตัวหนังสือธรรมดา
             return markdownText.replace(/\n/g, '<br>');
