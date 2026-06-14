@@ -24,7 +24,7 @@ function isRateLimited(ip: string): boolean {
 }
 
 export function middleware(request: NextRequest) {
-  const ip = request.ip || request.headers.get("x-forwarded-for") || "127.0.0.1";
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || "127.0.0.1";
 
   // 1. Rate Limiting for API routes
   if (request.nextUrl.pathname.startsWith("/api/")) {
