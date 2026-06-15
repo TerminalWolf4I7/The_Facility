@@ -53,19 +53,32 @@ export function middleware(request: NextRequest) {
 
   // 3. Dynamic CSP Nonce generation (using edge-safe btoa)
   const nonce = btoa(crypto.randomUUID());
+  const isProd = process.env.NODE_ENV === "production";
   
   // Strict CSP: Allow standard scripts and fonts, restrict connections to self
-  const cspHeaderValue = `
-    default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    font-src 'self' https://fonts.gstatic.com;
-    connect-src 'self';
-    img-src 'self' data:;
-    frame-src 'none';
-    object-src 'none';
-    base-uri 'self';
-  `.replace(/\s{2,}/g, " ").trim();
+  const cspHeaderValue = isProd
+    ? `
+        default-src 'self';
+        script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        font-src 'self' https://fonts.gstatic.com;
+        connect-src 'self';
+        img-src 'self' data:;
+        frame-src 'none';
+        object-src 'none';
+        base-uri 'self';
+      `.replace(/\s{2,}/g, " ").trim()
+    : `
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval';
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        font-src 'self' https://fonts.gstatic.com;
+        connect-src 'self' ws: http:;
+        img-src 'self' data:;
+        frame-src 'none';
+        object-src 'none';
+        base-uri 'self';
+      `.replace(/\s{2,}/g, " ").trim();
 
   // Clone headers
   const requestHeaders = new Headers(request.headers);
