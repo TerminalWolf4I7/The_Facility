@@ -3,6 +3,8 @@ import { Outfit, Poppins, Sarabun, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
 
+export const dynamic = "force-dynamic";
+
 const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-outfit",
