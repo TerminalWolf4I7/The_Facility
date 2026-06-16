@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, BookOpen, ArrowLeft, History, Info, Sparkles } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import Navbar from "@/components/ui/Navbar";
@@ -213,27 +212,19 @@ export default function SpeedReaderPage() {
           </div>
 
           <div className="h-32 flex items-center justify-center text-center">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={`${currentWord}-${currentWordIndex}`}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.08 }}
-                className="text-3xl sm:text-4xl font-bold tracking-wide text-white leading-normal"
-              >
-                {currentWord}
-              </motion.div>
-            </AnimatePresence>
+            <div
+              key={`${currentWord}-${currentWordIndex}`}
+              className="text-3xl sm:text-4xl font-bold tracking-wide text-white leading-normal"
+            >
+              {currentWord}
+            </div>
           </div>
 
           {/* Progress Bar */}
           <div className="w-full h-1 bg-white/10 rounded-full mt-4 overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${progressPercent}%` }}
-              transition={{ duration: 0.1 }}
-              className="h-full bg-blue-500"
+            <div
+              style={{ width: `${progressPercent}%` }}
+              className="h-full bg-blue-500 transition-all duration-100 ease-out"
             />
           </div>
           <div className="flex justify-between text-xs text-white/50 mt-1.5 font-mono">

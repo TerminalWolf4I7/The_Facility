@@ -17,7 +17,9 @@
     "zod": "^3.24.1",
     "marked": "^15.0.4",
     "dompurify": "^3.2.3",
-    "firebase-admin": "^13.0.1"
+    "firebase-admin": "^13.0.1",
+    "gsap": "^3.12.5",
+    "@gsap/react": "^2.1.1"
   },
   "devDependencies": {
     "typescript": "^5.7.2",

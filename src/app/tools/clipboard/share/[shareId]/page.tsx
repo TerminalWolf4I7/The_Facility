@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Lock, Copy, ShieldAlert, FileText, Calendar } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import Navbar from "@/components/ui/Navbar";

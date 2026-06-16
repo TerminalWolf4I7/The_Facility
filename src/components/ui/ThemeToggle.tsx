@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { Sun, Moon } from "lucide-react";
-import { motion } from "framer-motion";
 
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
@@ -37,14 +36,12 @@ export default function ThemeToggle() {
   };
 
   return (
-    <motion.button
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
+    <button
       onClick={toggleTheme}
-      className="w-10 h-10 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 dark:bg-dark-300 dark:hover:bg-dark-400 border border-white/15 text-white shadow-md cursor-pointer transition-colors duration-200"
+      className="w-10 h-10 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 dark:bg-dark-300 dark:hover:bg-dark-400 border border-white/15 text-white shadow-md cursor-pointer transition-all duration-200 hover:scale-105 active:scale-95"
       aria-label="สลับโหมดมืด/สว่าง"
     >
       {theme === "dark" ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-purple-400" />}
-    </motion.button>
+    </button>
   );
 }

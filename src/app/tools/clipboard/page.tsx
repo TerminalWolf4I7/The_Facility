@@ -1,11 +1,11 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowLeft, Shield, Lock, LogOut, Key, Search, Plus, Sparkles,
   Eye, EyeOff, Copy, Trash2, Edit2, Share2, Calendar, FileText, Check, AlertTriangle
 } from "lucide-react";
+import { gsap, useGSAP } from "@/lib/gsap";
 import GlassCard from "@/components/ui/GlassCard";
 import Navbar from "@/components/ui/Navbar";
 import { useToast } from "@/components/ui/Toast";
@@ -67,6 +67,17 @@ export default function ClipboardPage() {
 
   // rate limiter connection attempts
   const connectionLimiter = useRef(createRateLimiter(5, 60000));
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    if (containerRef.current) {
+      gsap.fromTo(
+        containerRef.current,
+        { opacity: 0, y: 15 },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }
+      );
+    }
+  }, { dependencies: [session], scope: containerRef });
 
   // Initialize
   useEffect(() => {
@@ -386,21 +397,13 @@ export default function ClipboardPage() {
       </Navbar>
 
       {/* Main Container */}
-      <div className="max-w-6xl mx-auto pt-28 pb-16 px-6 flex-1 w-full flex flex-col justify-center">
+      <div ref={containerRef} className="max-w-6xl mx-auto pt-28 pb-16 px-6 flex-1 w-full flex flex-col justify-center">
         {!session ? (
           /* CONNECT SESSION LANDING VIEW */
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="max-w-md mx-auto w-full"
-          >
+          <div className="max-w-md mx-auto w-full">
             <GlassCard variant="strong" className="p-8 text-center backdrop-blur-2xl">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mx-auto mb-4 relative">
-                <motion.div
-                  animate={{ scale: [1, 1.15, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute inset-0 bg-emerald-400/20 rounded-2xl blur-md"
-                />
+                <div className="absolute inset-0 bg-emerald-400/20 rounded-2xl blur-md animate-pulse-glow" />
                 <Shield className="w-7 h-7 text-white relative z-10" />
               </div>
               <h2 className="text-2xl font-black text-white mb-2 leading-tight">Sync Clipboard</h2>
@@ -462,14 +465,10 @@ export default function ClipboardPage() {
                 </div>
               </div>
             </GlassCard>
-          </motion.div>
+          </div>
         ) : (
           /* DASHBOARD VIEW */
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-6 w-full"
-          >
+          <div className="space-y-6 w-full">
             {/* Hero */}
             <div className="text-center mb-8">
               <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">
@@ -533,16 +532,14 @@ export default function ClipboardPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 select-text">
                 {filteredClips.map((clip) => (
-                  <motion.div
+                  <div
                     key={clip.id}
-                    layout
-                    whileHover={{ y: -1 }}
                     onClick={() => {
                       setViewClip(clip);
                       setViewDecryptedContent(clip.hasPassword ? null : clip.content);
                       setViewModalOpen(true);
                     }}
-                    className="p-5 rounded-xl glass hover:border-emerald-500/30 cursor-pointer border border-white/5 flex flex-col justify-between h-44 relative group select-text"
+                    className="p-5 rounded-xl glass hover:border-emerald-500/30 cursor-pointer border border-white/5 flex flex-col justify-between h-44 relative group select-text transition-all duration-200 hover:-translate-y-0.5"
                   >
                     <div>
                       <div className="flex justify-between items-start mb-2">
@@ -582,33 +579,27 @@ export default function ClipboardPage() {
                         </span>
                       )}
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             )}
-          </motion.div>
+          </div>
         )}
       </div>
 
       {/* ==========================================
           MODAL: ADD & EDIT CLIP
          ========================================== */}
-      <AnimatePresence>
-        {editorModalOpen && (
-          <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setEditorModalOpen(false)}
-              className="absolute inset-0 bg-black/70 backdrop-blur-md"
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 10 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="relative w-full max-w-lg glass-strong p-6 sm:p-8 rounded-2xl z-10 max-h-[90vh] overflow-y-auto"
-            >
+      <div className={`fixed inset-0 z-[999] flex items-center justify-center p-4 transition-all duration-300 ${
+        editorModalOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+      }`}>
+        <div
+          onClick={() => setEditorModalOpen(false)}
+          className="absolute inset-0 bg-black/70 backdrop-blur-md"
+        />
+        <div className={`relative w-full max-w-lg glass-strong p-6 sm:p-8 rounded-2xl z-10 max-h-[90vh] overflow-y-auto transition-all duration-300 transform ${
+          editorModalOpen ? "scale-100 translate-y-0" : "scale-95 translate-y-4"
+        }`}>
               <h3 className="text-lg font-bold text-white mb-6">
                 {editorClipId ? "แก้ไขข้อมูลคลิปบอร์ด" : "เพิ่มคลิปบอร์ดใหม่ (Encrypted)"}
               </h3>
@@ -752,30 +743,24 @@ export default function ClipboardPage() {
                   </button>
                 </div>
               </form>
-            </motion.div>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
 
       {/* ==========================================
           MODAL: VIEW CLIP DETAILS
          ========================================== */}
-      <AnimatePresence>
-        {viewModalOpen && viewClip && (
-          <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setViewModalOpen(false)}
-              className="absolute inset-0 bg-black/70 backdrop-blur-md"
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 10 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="relative w-full max-w-lg glass-strong p-6 sm:p-8 rounded-2xl z-10 max-h-[90vh] overflow-y-auto"
-            >
+      <div className={`fixed inset-0 z-[999] flex items-center justify-center p-4 transition-all duration-300 ${
+        viewModalOpen && viewClip ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+      }`}>
+        <div
+          onClick={() => setViewModalOpen(false)}
+          className="absolute inset-0 bg-black/70 backdrop-blur-md"
+        />
+        <div className={`relative w-full max-w-lg glass-strong p-6 sm:p-8 rounded-2xl z-10 max-h-[90vh] overflow-y-auto transition-all duration-300 transform ${
+          viewModalOpen ? "scale-100 translate-y-0" : "scale-95 translate-y-4"
+        }`}>
+          {viewClip && (
+            <>
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-bold text-white truncate">{viewClip.title}</h3>
@@ -853,10 +838,10 @@ export default function ClipboardPage() {
                   </div>
                 </div>
               )}
-            </motion.div>
+            </>
+          )}
+        </div>
           </div>
-        )}
-      </AnimatePresence>
 
       {/* Footer */}
       <footer className="w-full py-8 text-center text-xs text-white/40 border-t border-white/5 bg-black/10 select-none">

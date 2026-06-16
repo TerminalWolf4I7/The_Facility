@@ -21,6 +21,15 @@
   100% { background-position: 0% 50%; }
 }
 
+/* Pulsing effect for logo */
+@keyframes logoPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); }
+}
+.logo-pulse {
+  animation: logoPulse 2.5s infinite ease-in-out;
+}
+
 /* Glassmorphism Styles */
 .glass {
   background: rgba(255, 255, 255, 0.05);
@@ -81,4 +90,41 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(52, 211, 153, 0.5);
+}
+
+/* Toast animations */
+@keyframes toastIn {
+  0% { opacity: 0; transform: translateY(30px) scale(0.9); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toastOut {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-20px) scale(0.95); }
+}
+
+.animate-toast-in {
+  animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-toast-out {
+  animation: toastOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes valuePop {
+  0% { transform: scale(1.15); filter: brightness(1.5); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+.animate-value-pop {
+  animation: valuePop 0.25s ease-out forwards;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s infinite ease-in-out;
 }

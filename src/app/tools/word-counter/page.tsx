@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, Copy, Share2, Printer, Save, ArrowLeft } from "lucide-react";
+import { gsap, useGSAP } from "@/lib/gsap";
 import GlassCard from "@/components/ui/GlassCard";
 import Navbar from "@/components/ui/Navbar";
 import { useToast } from "@/components/ui/Toast";
@@ -12,6 +12,7 @@ import { escapeHtml } from "@/lib/security";
 export default function WordCounterPage() {
   const { showToast } = useToast();
   const [text, setText] = useState("");
+  const statsContainerRef = useRef<HTMLDivElement>(null);
   const [stats, setStats] = useState<WordStats>({
     chars: 0,
     noSpaces: 0,
@@ -31,6 +32,16 @@ export default function WordCounterPage() {
     setText(saved);
     setStats(calculateAllStats(saved));
   }, []);
+
+  useGSAP(() => {
+    if (statsContainerRef.current) {
+      gsap.fromTo(
+        statsContainerRef.current.children,
+        { opacity: 0, y: 15 },
+        { opacity: 1, y: 0, duration: 0.4, stagger: 0.04, ease: "power2.out" }
+      );
+    }
+  }, { scope: statsContainerRef });
 
   // Handle text change with automatic save
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -203,28 +214,22 @@ export default function WordCounterPage() {
           </div>
 
           {/* Statistics Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+          <div ref={statsContainerRef} className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             {statsCards.map((card, idx) => (
-              <motion.div
+              <div
                 key={card.label}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.04, duration: 0.4 }}
                 className={`p-3.5 rounded-xl glass border-l-4 ${card.borderColor.split(" ")[0]} flex flex-col justify-between transition hover:-translate-y-0.5 hover:shadow-lg shadow-sm`}
               >
                 <span className="text-[10px] sm:text-xs font-medium opacity-60 uppercase tracking-wider mb-1 leading-snug">
                   {card.label}
                 </span>
-                <motion.span
+                <span
                   key={card.value}
-                  initial={{ scale: 1.15, filter: "brightness(1.5)" }}
-                  animate={{ scale: 1, filter: "brightness(1)" }}
-                  transition={{ duration: 0.25, ease: "easeOut" }}
-                  className={`text-xl font-bold truncate ${card.borderColor.split(" ").slice(1).join(" ")}`}
+                  className={`text-xl font-bold truncate ${card.borderColor.split(" ").slice(1).join(" ")} animate-value-pop`}
                 >
                   {card.value.toLocaleString()}
-                </motion.span>
-              </motion.div>
+                </span>
+              </div>
             ))}
           </div>
         </GlassCard>

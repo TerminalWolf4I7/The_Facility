@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { 
   ArrowLeft, FileSpreadsheet, Code, FileText, Trash2, 
   Bold, Italic, Strikethrough, Heading1, Heading2, Heading3, 
